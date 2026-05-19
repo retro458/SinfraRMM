@@ -1,50 +1,350 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SinfraRMM.Web</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/SinfraRMM.Web.styles.css" asp-append-version="true" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"] — SinfraRMM</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <style>
+        body {
+            background-color: #0f1117;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 220px;
+            min-height: 100vh;
+            background-color: #111318;
+            border-right: 1px solid #1e2130;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            padding: 1.25rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            border-bottom: 1px solid #1e2130;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand .brand-icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #4d9fff, #0066cc);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .sidebar-brand span { color: #4d9fff; }
+
+        .sidebar-nav { padding: 0.75rem 0; flex-grow: 1; }
+
+        .nav-section-label {
+            padding: 0.75rem 1.5rem 0.25rem;
+            font-size: 0.65rem;
+            color: #3d4560;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        .sidebar-nav .nav-link {
+            color: #64748b;
+            padding: 0.55rem 1.5rem;
+            font-size: 0.855rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.15s;
+            border-left: 2px solid transparent;
+        }
+
+        .sidebar-nav .nav-link:hover {
+            color: #cbd5e1;
+            background-color: #1a1d27;
+        }
+
+        .sidebar-nav .nav-link.active {
+            color: #f1f5f9;
+            background-color: #1a1d27;
+            border-left-color: #4d9fff;
+        }
+
+        .sidebar-nav .nav-link .nav-icon {
+            width: 16px;
+            text-align: center;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #1e2130;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4d9fff22, #4d9fff44);
+            border: 1px solid #4d9fff44;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #4d9fff;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .user-email {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-role {
+            font-size: 0.65rem;
+            color: #4d9fff;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-logout {
+            width: 100%;
+            padding: 0.45rem;
+            background: transparent;
+            border: 1px solid #1e2130;
+            color: #64748b;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-logout:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239,68,68,0.05);
+        }
+
+        /* ── Main content ── */
+        .main-content {
+            margin-left: 220px;
+            min-height: 100vh;
+        }
+
+        /* ── Top header ── */
+        .top-header {
+            background: #111318;
+            border-bottom: 1px solid #1e2130;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .page-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .page-breadcrumb {
+            font-size: 0.75rem;
+            color: #475569;
+            margin-top: 1px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: #161920;
+            border: 1px solid #1e2130;
+            color: #e2e8f0;
+        }
+
+        .card .text-muted { color: #475569 !important; }
+        .progress { background-color: #1e2130; }
+
+        .form-control {
+            background-color: #0f1117;
+            border-color: #1e2130;
+            color: #e2e8f0;
+        }
+
+        .form-control:focus {
+            background-color: #0f1117;
+            border-color: #4d9fff;
+            color: #e2e8f0;
+            box-shadow: 0 0 0 0.2rem rgba(77,159,255,0.1);
+        }
+
+        .table-dark {
+            --bs-table-bg: transparent;
+            --bs-table-hover-bg: rgba(255,255,255,0.03);
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SinfraRMM.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-brand">
+            <div class="brand-icon">⚙</div>
+            Sinfra<span>RMM</span>
+        </div>
+
+        <!-- Nav -->
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">General</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"
+                       asp-controller="Dashboard" asp-action="Index">
+                        <span class="nav-icon">▣</span> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Servers" ? "active" : "")"
+                       asp-controller="Servers" asp-action="Index">
+                        <span class="nav-icon">◫</span> Servidores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Commands" ? "active" : "")"
+                       asp-controller="Commands" asp-action="Index">
+                        <span class="nav-icon">$</span> Comandos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Alerts" ? "active" : "")"
+                       asp-controller="Alerts" asp-action="Index">
+                        <span class="nav-icon">◉</span> Alertas
+                    </a>
+                </li>
+            </ul>
+
+            @if (User.IsInRole("Admin") || User.IsInRole("Auditor"))
+            {
+                <div class="nav-section-label mt-2">Administración</div>
+                <ul class="nav flex-column">
+                    @if (User.IsInRole("Admin"))
+                    {
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                               asp-controller="Users" asp-action="Index">
+                                <span class="nav-icon">◈</span> Usuarios
+                            </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+                    }
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AuditLogs" ? "active" : "")"
+                           asp-controller="AuditLogs" asp-action="Index">
+                            <span class="nav-icon">≡</span> Audit Log
+                        </a>
+                    </li>
+                </ul>
+            }
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    @(User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value?[0].ToString().ToUpper() ?? "?")
+                </div>
+                <div style="overflow:hidden">
+                    <div class="user-email">
+                        @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                    </div>
+                    <div class="user-role">
+                        @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                    </div>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+            <form asp-action="Logout" asp-controller="Auth" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-logout">Cerrar sesión</button>
+            </form>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - SinfraRMM.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <div class="main-content">
+        <!-- Top header -->
+        <div class="top-header">
+            <div>
+                <div class="page-title">@ViewData["Title"]</div>
+                <div class="page-breadcrumb">SinfraRMM · @ViewData["Title"]</div>
+            </div>
+            <div id="pending-users-banner" class="d-none">
+                <a href="/Users/Index" class="badge bg-warning text-dark text-decoration-none">
+                    ⚠️ <span id="pending-count">1</span> usuario(s) pendiente(s)
+                </a>
+            </div>
         </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+
+        <div class="p-4">
+            @RenderBody()
+        </div>
+    </div>
+}
+else
+{
+    @RenderBody()
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+
+@if (User.IsInRole("Admin"))
+{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const __apiUrl = "@DotNetEnv.Env.GetString("API_URL")";
+        const __conn   = new signalR.HubConnectionBuilder()
+            .withUrl(`${__apiUrl}/hubs/monitor`)
+            .withAutomaticReconnect()
+            .build();
+
+        __conn.on("NewUserPending", data => {
+            const banner = document.getElementById("pending-users-banner");
+            if (banner) banner.classList.remove("d-none");
+        });
+
+        __conn.start().catch(console.error);
+    </script>
+}
 </body>
 </html>

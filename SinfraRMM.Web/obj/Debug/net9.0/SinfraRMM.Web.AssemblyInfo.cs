@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SinfraRMM.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+089b53493ef8d2a93139890e2d5a6ebb5bc97766")]
 [assembly: System.Reflection.AssemblyProductAttribute("SinfraRMM.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SinfraRMM.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

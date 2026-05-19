@@ -1,0 +1,254 @@
+@model List<SinfraRMM.Web.Dtos.CommandDto>
+@{
+    ViewData["Title"] = "Commands";
+}
+
+<!-- Carga de Estilos de DataTables integrados con Bootstrap 5 -->
+<link rel="stylesheet" href="https://datatables.net">
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 fw-bold text-light">Comandos</h4>
+            <small class="text-muted text-uppercase tracking-wider small" style="font-size: 0.75rem; letter-spacing: 0.5px;">Panel de Monitoreo Técnico</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            @if (User.IsInRole("Admin"))
+            {
+                <!-- Disparador del Modal -->
+                <button class="btn btn-primary btn-sm font-monospace fw-bold px-3" data-bs-toggle="modal" data-bs-target="#modalAddCommand">
+                    + Registrar Comando
+                </button>
+            }
+            <span class="text-muted small font-monospace bg-light-subtle px-2 py-1 rounded border border-secondary-subtle">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</span>
+            <form asp-action="Logout" asp-controller="Auth" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-outline-danger px-3">Salir</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de comandos estilo RMM -->
+    <div class="card shadow-sm border-light">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="commands-table" class="table table-sm table-hover align-middle mb-0">
+                    <thead class="text-secondary small text-uppercase">
+                        <tr>
+                            <th scope="col" class="text-center py-3" style="width: 70px;">ID</th>
+                            <th scope="col" class="py-3" style="width: 140px;">Tecnología</th>
+                            <th scope="col" class="py-3" style="width: 220px;">Nombre del Comando</th>
+                            <th scope="col" class="py-3">Descripción / Acción</th>
+                            <th scope="col" class="text-center py-3" style="width: 120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @foreach (var command in Model)
+                        {
+                            string badgeStyle = "background-color: rgba(108, 117, 125, 0.15); color: #adb5bd; border: 1px solid rgba(108, 117, 125, 0.3);"; 
+                            string techName = "Sistema";
+                            string nameLower = command.Name?.ToLower() ?? "";
+
+                            if (nameLower.Contains("nginx")) { badgeStyle = "background-color: rgba(25, 135, 84, 0.15); color: #4ade80; border: 1px solid rgba(25, 135, 84, 0.3);"; techName = "NGINX"; }
+                            else if (nameLower.Contains("apache")) { badgeStyle = "background-color: rgba(220, 53, 69, 0.15); color: #f87171; border: 1px solid rgba(220, 53, 69, 0.3);"; techName = "Apache"; }
+                            else if (nameLower.Contains("postgres") || nameLower.Contains("oracle")) { badgeStyle = "background-color: rgba(13, 110, 253, 0.15); color: #60a5fa; border: 1px solid rgba(13, 110, 253, 0.3);"; techName = "Database"; }
+                            else if (nameLower.Contains("mariadb") || nameLower.Contains("mysql")) { badgeStyle = "background-color: rgba(13, 202, 240, 0.15); color: #22d3ee; border: 1px solid rgba(13, 202, 240, 0.3);"; techName = "MariaDB"; }
+                            else if (nameLower.Contains("ping") || nameLower.Contains("tailscale") || nameLower.Contains("puertos") || nameLower.Contains("vpn")) { badgeStyle = "background-color: rgba(255, 193, 7, 0.15); color: #fbbf24; border: 1px solid rgba(255, 193, 7, 0.3);"; techName = "Redes"; }
+                            else if (nameLower.Contains("disco") || nameLower.Contains("memoria") || nameLower.Contains("cpu") || nameLower.Contains("carga")) { badgeStyle = "background-color: rgba(248, 249, 250, 0.1); color: #e2e8f0; border: 1px solid rgba(248, 249, 250, 0.2);"; techName = "Métricas"; }
+
+                            <tr>
+                                <td class="text-center font-monospace text-muted fw-bold">#@command.Id</td>
+                                <td>
+                                    <span class="badge rounded-1 px-2 py-1 text-uppercase font-monospace fw-bold" style="font-size: 0.7rem; @badgeStyle">
+                                        @techName
+                                    </span>
+                                </td>
+                                <td><span class="fw-semibold text-light font-monospace">@command.Name</span></td>
+                                <td class="text-secondary-emphasis">@command.Description</td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs btn-outline-light font-monospace fw-bold px-2 py-0 custom-run-btn" style="font-size: 0.75rem;">
+                                        RUN
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Registrar comando (solo Admin) -->
+@if (User.IsInRole("Admin"))
+{
+    <div class="modal fade" id="modalAddCommand" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#1a1d27; border:1px solid #2a2d3a;">
+                <div class="modal-header" style="border-color:#2a2d3a;">
+                    <h6 class="modal-title text-light font-monospace">Registrar Comando</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="form-error" class="alert alert-danger d-none font-monospace small"></div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small text-muted font-monospace">Nombre Comercial</label>
+                        <input type="text" id="inp-name" class="form-control custom-input text-light" placeholder="Ej: Reiniciar Nginx"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted font-monospace">Descripción</label>
+                        <textarea id="inp-description" rows="2" class="form-control custom-input text-light" placeholder="Describe qué hace este script..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted font-monospace">Comando Ejecutable (Bash)</label>
+                        <input type="text" id="inp-actual" class="form-control custom-input font-monospace text-info" placeholder="Ej: sudo systemctl restart nginx"/>
+                    </div>
+                    <div class="form-check form-switch mb-2 bg-transparent p-0 d-flex align-items-center gap-3">
+                        <input class="form-check-input custom-switch m-0" type="checkbox" role="switch" id="inp-admin">
+                        <label class="form-check-label text-muted small font-monospace" for="inp-admin">
+                            ¿Requiere privilegios Sudo / Root?
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:#2a2d3a;">
+                    <button class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary btn-sm font-monospace" id="btn-save-command">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- SCRIPTS DE CONTROL -->
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="https://datatables.net"></script>
+<script src="https://datatables.net"></script>
+
+@section Scripts {
+    <!-- 1. Cargamos jQuery PRIMERO (solo si tu _Layout no lo incluye, pero tenerlo aquí asegura compatibilidad) -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- 2. Cargamos las librerías de DataTables DESPUÉS de jQuery -->
+    <script src="https://datatables.net"></script>
+    <script src="https://datatables.net"></script>
+
+    <!-- 3. Inicialización de la Tabla y tu lógica AJAX -->
+    <script>
+        $(document).ready(function () {
+            // Inicializar DataTables de forma segura
+            if ($.fn.DataTable) {
+                $('#commands-table').DataTable({
+                    "order": [[0, "asc"]],
+                    "columnDefs": [
+                        { "type": "num", "targets": 0 },
+                        { "orderable": false, "targets": 4 }
+                    ],
+                    "pageLength": 25,
+                    "language": {
+                        "url": "https://datatables.net"
+                    }
+                });
+            } else {
+                console.error("DataTables no pudo ser cargado correctamente en el DOM.");
+            }
+
+            // AJAX para Registrar Comando (Tu lógica del botón de guardado)
+            document.getElementById("btn-save-command")?.addEventListener("click", async () => {
+                const btn = document.getElementById("btn-save-command");
+                btn.disabled = true;
+                btn.textContent = "Guardando...";
+                
+                const errorDiv = document.getElementById("form-error");
+                errorDiv.classList.add("d-none");
+
+                const body = {
+                    name:           document.getElementById("inp-name").value,
+                    description:    document.getElementById("inp-description").value,
+                    actualCommand:  document.getElementById("inp-actual").value,
+                    requieresAdmin: document.getElementById("inp-admin").checked
+                };
+
+                try {
+                    const res = await fetch("/Commands/Add", {
+                        method:  "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body:    JSON.stringify(body)
+                    });
+
+                    if (res.ok) {
+                        location.reload();
+                    } else {
+                        const errText = await res.text();
+                        throw new Error(errText || `Fallo en el servidor remoto (${res.status})`);
+                    }
+                } catch (err) {
+                    errorDiv.textContent = err.message;
+                    errorDiv.classList.remove("d-none");
+                    btn.disabled = false;
+                    btn.textContent = "Registrar";
+                }
+            });
+        });
+    </script>
+}
+<style>
+    /* Estilos globales para modo oscuro unificado */
+    .card { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+    #commands-table thead th { background-color: rgba(255, 255, 255, 0.03) !important; border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important; color: #94a3b8 !important; }
+    #commands-table tbody td { background-color: transparent !important; border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; }
+    #commands-table tbody .text-light { color: #f8fafc !important; }
+    #commands-table tbody .text-secondary-emphasis { color: #94a3b8 !important; }
+    #commands-table tbody tr:nth-of-type(odd) { background-color: rgba(255, 255, 255, 0.01) !important; }
+    #commands-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.04) !important; }
+    .table-sm th, .table-sm td { padding: 0.7rem 0.75rem !important; }
+
+    /* Inputs internos del Modal Dark */
+    .custom-input, .custom-input:focus { background-color: rgba(255, 255, 255, 0.03) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #f8fafc !important; border-radius: 4px; }
+    .custom-input:focus { border-color: #38bdf8 !important; box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.15) !important; }
+    
+    .custom-switch { width: 2.3em !important; height: 1.15em !important; background-color: rgba(255, 255, 255, 0.1) !important; border-color: rgba(255, 255, 255, 0.2) !important; cursor: pointer; }
+    .custom-switch:checked { background-color: #38bdf8 !important; border-color: #38bdf8 !important; }
+    .custom-run-btn { color: #38bdf8 !important; border-color: rgba(56, 189, 248, 0.4) !important; background: transparent; }
+    .custom-run-btn:hover { color: #121318 !important; background-color: #38bdf8 !important; border-color: #38bdf8 !important; }
+
+    
+
+/* Forzar que los textos fijos de las etiquetas dentro del modal sean visibles */
+#modalAddCommand label {
+    color: #94a3b8 !important; /* Gris claro legible */
+    margin-bottom: 0.4rem;
+    display: block;
+}
+
+/* Título principal del modal en blanco */
+#modalAddCommand .modal-title {
+    color: #f8fafc !important;
+}
+
+/* Estilo definitivo para los Inputs en Modo Oscuro */
+#modalAddCommand .custom-input {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important; /* Texto que escribe el usuario en BLANCO */
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+}
+
+/* Efecto cuando el usuario hace clic para escribir en el input */
+#modalAddCommand .custom-input:focus {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border-color: #38bdf8 !important; /* Borde azul cian */
+    box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.2) !important;
+    color: #ffffff !important;
+}
+
+/* Color del texto de ayuda temporal (Placeholder) */
+#modalAddCommand .custom-input::placeholder {
+    color: rgba(255, 255, 255, 0.3) !important; 
+}
+
+</style>
+

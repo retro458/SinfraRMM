@@ -1,0 +1,200 @@
+
+@model List<SinfraRMM.Web.Dtos.ServerDto>
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0">SinfraRMM</h4>
+            <small class="text-muted">Panel de Monitoreo</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-success" id="signalr-status">● Conectado</span>
+            <span class="text-muted small">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</span>
+            <form asp-action="Logout" asp-controller="Auth" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-outline-danger">Salir</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tarjetas de servidores -->
+    <div class="row g-3" id="servers-grid">
+        @foreach (var server in Model)
+        {
+            <div class="col-md-6 col-xl-4" id="server-card-@server.Id">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+
+                        <!-- Header de la tarjeta -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h6 class="mb-0">@server.Name</h6>
+                                <small class="text-muted">@server.AssetCode · @server.IpAddress</small>
+                            </div>
+                            <span class="badge @(server.Status == "Online" ? "bg-success" : server.Status == "Maintenance" ? "bg-warning" : "bg-danger")"
+                                  id="status-@server.Id">
+                                @server.Status
+                            </span>
+                        </div>
+
+                        <!-- OS Info -->
+                        <p class="text-muted small mb-3">
+                             @(server.OsInfo ?? "Sin información")
+                        </p>
+
+                        <!-- Métricas en tiempo real -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">CPU</div>
+                                <div class="fw-bold text-primary" id="cpu-@server.Id">--%</div>
+                                <div class="progress mt-1" style="height:4px">
+                                    <div class="progress-bar bg-primary" id="cpu-bar-@server.Id" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">RAM</div>
+                                <div class="fw-bold text-warning" id="ram-@server.Id">--%</div>
+                                <div class="progress mt-1" style="height:4px">
+                                    <div class="progress-bar bg-warning" id="ram-bar-@server.Id" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="small text-muted">DISK</div>
+                                <div class="fw-bold text-info" id="disk-@server.Id">--%</div>
+                                <div class="progress mt-1" style="height:4px">
+                                    <div class="progress-bar bg-info" id="disk-bar-@server.Id" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Last heartbeat -->
+                        <div class="text-muted small mb-3">
+                            Último contacto: <span id="heartbeat-@server.Id">
+                                @(server.LastHeartbeat?.ToString("HH:mm:ss") ?? "Nunca")
+                            </span>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="d-flex gap-2">
+                            <a href="/Servers/Detail/@server.Id" class="btn btn-sm btn-outline-primary flex-grow-1">
+                                Ver detalle
+                            </a>
+                            <a href="/Servers/Console/@server.Id" class="btn btn-sm btn-outline-secondary">
+                                 Consola
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Toast de alertas -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div id="alert-toast" class="toast align-items-center text-white bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="alert-toast-body">
+                     Alerta
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+    // IDs de servidores para unirse a los grupos SignalR
+    const serverIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(s => s.Id.ToString())));
+    const apiUrl    = "@ViewBag.ApiUrl";
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${apiUrl}/hubs/monitor`)
+        .withAutomaticReconnect()
+        .build();
+
+    // ── Eventos SignalR ──────────────────────────
+
+    // Métricas en tiempo real
+    connection.on("ReceiveMetrics", data => {
+        console.log("SignalR metricas: ", JSON.stringify(data));
+        const id = data.serverId;
+        setMetric(`cpu-${id}`,  `cpu-bar-${id}`,  data.cpu,  "primary");
+        setMetric(`ram-${id}`,  `ram-bar-${id}`,  data.ram,  "warning");
+        setMetric(`disk-${id}`, `disk-bar-${id}`, data.disk, "info");
+    });
+
+    // Cambio de status Online/Offline
+    connection.on("ServerStatusChanged", data => {
+        const badge = document.getElementById(`status-${data.serverId}`);
+        if (!badge) return;
+        badge.textContent = data.status;
+        badge.className   = `badge ${data.status === "Online" ? "bg-success" : "bg-danger"}`;
+    });
+
+    // Output de comando ejecutado
+    connection.on("ReceiveCommandResult", data => {
+        showToast(` ${data.commandName}: ${data.status}`, data.status === "Done" ? "success" : "danger");
+    });
+
+    // Alerta de umbral superado
+    connection.on("ReceiveAlert", data => {
+        showToast(data.message, "danger");
+    });
+
+    // ── Helpers ──────────────────────────────────
+
+    function setMetric(textId, barId, value, color) {
+        const el  = document.getElementById(textId);
+        const bar = document.getElementById(barId);
+        if (!el || !bar) return;
+        el.textContent  = `${value}%`;
+        bar.style.width = `${value}%`;
+        // Cambia color si supera umbrales
+        bar.className = `progress-bar bg-${value > 90 ? "danger" : value > 70 ? "warning" : color}`;
+    }
+
+    function showToast(message, type = "danger") {
+        const toast = document.getElementById("alert-toast");
+        const body  = document.getElementById("alert-toast-body");
+        body.textContent = message;
+        toast.className  = `toast align-items-center text-white bg-${type} border-0`;
+        new bootstrap.Toast(toast, { delay: 6000 }).show();
+    }
+
+    // ── Inicio ───────────────────────────────────
+
+    async function startSignalR() {
+        try {
+            await connection.start();
+            document.getElementById("signalr-status").textContent = "● Conectado";
+            document.getElementById("signalr-status").className   = "badge bg-success";
+
+            // Se une al grupo de cada servidor
+            for (const id of serverIds) {
+                await connection.invoke("JoinServerGroup", id);
+            }
+        } catch (e) {
+            document.getElementById("signalr-status").textContent = "● Desconectado";
+            document.getElementById("signalr-status").className   = "badge bg-danger";
+            setTimeout(startSignalR, 5000);
+        }
+    }
+
+    connection.onreconnected(() => {
+        for (const id of serverIds) {
+            connection.invoke("JoinServerGroup", id);
+        }
+    });
+
+    startSignalR();
+</script>
+}

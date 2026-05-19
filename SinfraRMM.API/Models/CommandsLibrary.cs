@@ -24,5 +24,14 @@ public partial class CommandsLibrary
     public string? Description { get; set; }
 
     [InverseProperty("Command")]
+
+    [Column("requires_admin")
+    ]
+    public bool RequiresAdmin { get; set; }
+
+    [Column("category")]
+    public string? Category { get; set; }
+
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+    public virtual ICollection<CommandQueue> CommandQueues { get; set; } = new List<CommandQueue>();
 }

@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using SinfraRMM.API.Interfaces;
 using SinfraRMM.API.Services;
 using SinfraRMM.API.Models;
+using SinfraRMM.API.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +32,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SinfraPolicy", policy =>
     {
-        policy.WithOrigins("", "http://localhost:5000")
+        policy.WithOrigins("", "http://localhost:5000", "http://localhost:5049")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); 
@@ -72,6 +73,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 // 5. Inyección de Dependencias (Services)
 builder.Services.AddScoped<IServerService, ServerService>();
@@ -105,6 +107,28 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+     c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-Api-Key",
+        Description = "ApiKey del agente (viene de la tabla servers)"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 var app = builder.Build();
 
@@ -121,6 +145,7 @@ app.UseHttpsRedirection();
 app.UseCors("SinfraPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<MonitorHub>("/hubs/monitor");
 app.MapControllers();
 
 

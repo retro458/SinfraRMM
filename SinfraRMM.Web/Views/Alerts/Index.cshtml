@@ -1,0 +1,244 @@
+@model List<SinfraRMM.Web.Dtos.AlertRuleDto>
+@{
+    ViewData["Title"] = "Alertas";
+    var servers = ViewBag.Servers as List<SinfraRMM.Web.Dtos.ServerDto> ?? new();
+}
+
+<div class="container-fluid px-4 py-3">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0"> Alertas</h5>
+            <small class="text-muted">Reglas de monitoreo proactivo</small>
+        </div>
+        @if (User.IsInRole("Admin"))
+        {
+            <button class="btn btn-primary btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalAddAlert">
+                + Nueva regla
+            </button>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr style="border-color:#2a2d3a">
+                        <th class="px-3 py-3 text-muted small">SERVIDOR</th>
+                        <th class="py-3 text-muted small">MÉTRICA</th>
+                        <th class="py-3 text-muted small">CONDICIÓN</th>
+                        <th class="py-3 text-muted small">ESTADO</th>
+                        <th class="py-3 text-muted small">CREADA</th>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <th class="py-3 text-muted small">ACCIONES</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                Sin reglas configuradas.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var rule in Model)
+                    {
+                        <tr style="border-color:#2a2d3a" id="rule-row-@rule.Id">
+                            <td class="px-3 py-3">
+                                <span class="badge bg-secondary me-1">@rule.AssetCode</span>
+                                @rule.ServerName
+                            </td>
+                            <td class="py-3">
+                                <span class="badge @(rule.MetricName == "CPU" ? "bg-primary" : rule.MetricName == "RAM" ? "bg-warning text-dark" : "bg-info text-dark")">
+                                    @rule.MetricName
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <code class="text-info">@rule.MetricName @rule.Operator @rule.Threshold%</code>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge @(rule.IsActive ? "bg-success" : "bg-secondary")"
+                                      id="status-@rule.Id">
+                                    @(rule.IsActive ? "Activa" : "Inactiva")
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <small class="text-muted">@rule.CreatedAt.ToString("dd/MM/yyyy")</small>
+                            </td>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <td class="py-3">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-warning btn-toggle"
+                                                data-id="@rule.Id">
+                                            @(rule.IsActive ? "Desactivar" : "Activar")
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete"
+                                                data-id="@rule.Id">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div id="alert-toast" class="toast align-items-center text-white border-0">
+            <div class="d-flex">
+                <div class="toast-body" id="alert-toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal nueva regla -->
+@if (User.IsInRole("Admin"))
+{
+    <div class="modal fade" id="modalAddAlert" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#1a1d27; border:1px solid #2a2d3a;">
+                <div class="modal-header" style="border-color:#2a2d3a;">
+                    <h6 class="modal-title">Nueva regla de alerta</h6>
+                    <button type="button" class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Servidor</label>
+                        <select id="inp-server" class="form-select"
+                                style="background:#0f1117; color:#e0e0e0; border-color:#2a2d3a">
+                            @foreach (var s in servers)
+                            {
+                                <option value="@s.Id">@s.AssetCode — @s.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Métrica</label>
+                        <select id="inp-metric" class="form-select"
+                                style="background:#0f1117; color:#e0e0e0; border-color:#2a2d3a">
+                            <option value="CPU">CPU</option>
+                            <option value="RAM">RAM</option>
+                            <option value="DISK">DISK</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label small">Operador</label>
+                            <select id="inp-operator" class="form-select"
+                                    style="background:#0f1117; color:#e0e0e0; border-color:#2a2d3a">
+                                <option value=">">&gt; Mayor que</option>
+                                <option value="<">&lt; Menor que</option>
+                                <option value="=">=  Igual a</option>
+                            </select>
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label small">Umbral (%)</label>
+                            <input type="number" id="inp-threshold" class="form-control"
+                                   style="background:#0f1117; color:#e0e0e0; border-color:#2a2d3a"
+                                   min="1" max="100" value="90"/>
+                        </div>
+                    </div>
+                    <div class="alert alert-secondary small">
+                        Ejemplo: <code>CPU > 90%</code> — notifica cuando el CPU supere el 90%
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:#2a2d3a;">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary btn-sm" id="btn-save-alert">Crear regla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+    const apiUrl = "@ViewBag.ApiUrl";
+
+    // ── SignalR para alertas en tiempo real ──
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${apiUrl}/hubs/monitor`)
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("ReceiveAlert", data => {
+        showToast(` ${data.message}`, "danger");
+    });
+
+    connection.start().catch(console.error);
+
+    // ── Crear regla ──
+    document.getElementById("btn-save-alert")?.addEventListener("click", async () => {
+        const body = {
+            serverId:   document.getElementById("inp-server").value,
+            metricName: document.getElementById("inp-metric").value,
+            threshold:  parseFloat(document.getElementById("inp-threshold").value),
+            operator:   document.getElementById("inp-operator").value
+        };
+
+        const res = await fetch("/Alerts/Create", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify(body)
+        });
+
+        if (res.ok) location.reload();
+        else showToast("Error al crear la regla.", "danger");
+    });
+
+    // ── Toggle ──
+    document.querySelectorAll(".btn-toggle").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id  = btn.dataset.id;
+            const res = await fetch("/Alerts/Toggle", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ id: parseInt(id) })
+            });
+
+            if (res.ok) location.reload();
+            else showToast("Error al cambiar estado.", "danger");
+        });
+    });
+
+    // ── Eliminar ──
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            if (!confirm("¿Eliminar esta regla?")) return;
+            const id  = btn.dataset.id;
+            const res = await fetch("/Alerts/Delete", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ id: parseInt(id) })
+            });
+
+            if (res.ok) {
+                document.getElementById(`rule-row-${id}`)?.remove();
+                showToast("Regla eliminada.", "success");
+            }
+        });
+    });
+
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("alert-toast");
+        const body  = document.getElementById("alert-toast-body");
+        body.textContent = message;
+        toast.className  = `toast align-items-center text-white bg-${type} border-0`;
+        new bootstrap.Toast(toast, { delay: 4000 }).show();
+    }
+</script>
+}

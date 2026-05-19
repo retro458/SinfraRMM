@@ -95,3 +95,9 @@
 /mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/SinfraRMM.Web.pdb
 /mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/SinfraRMM.Web.genruntimeconfig.cache
 /mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/ref/SinfraRMM.Web.dll
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/SinfraRMM.Web.sourcelink.json
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/bin/Debug/net9.0/DotNetEnv.dll
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/bin/Debug/net9.0/Superpower.dll
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/SinfraRMM.Web.csproj.AssemblyReference.cache
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/obj/Debug/net9.0/SinfraRM.3865E5C3.Up2Date
+/mnt/Programas/SinfraRMM/SinfraRMM.Web/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.Google.dll

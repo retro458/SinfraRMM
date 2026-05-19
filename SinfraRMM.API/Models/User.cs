@@ -23,7 +23,7 @@ public partial class User
 
     [Column("password")]
     [StringLength(200)]
-    public string password { get; set; } = null!;
+    public string? password { get; set; } 
 
     [Column("external_id")]
     public string? ExternalId { get; set; }
@@ -38,10 +38,13 @@ public partial class User
     [Column("created_at")]
     public DateTime? CreatedAt { get; set; }
 
+    public string Status { get; set; } = "active";
+
     [InverseProperty("User")]
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     [ForeignKey("RoleId")]
     [InverseProperty("Users")]
     public virtual Role? Role { get; set; }
+    public virtual ICollection<CommandQueue> CommandQueues { get; set; } = new List<CommandQueue>();
 }

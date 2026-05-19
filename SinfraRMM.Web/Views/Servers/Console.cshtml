@@ -1,0 +1,394 @@
+@model SinfraRMM.Web.Models.ServerConsoleViewModel
+@{
+    ViewData["Title"] = $"Consola — {Model.Server.Name}";
+    var categories = Model.Commands
+        .GroupBy(c => c.Category ?? "Sistema")
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<style>
+    .console-wrapper {
+        display: flex;
+        gap: 1rem;
+        height: calc(100vh - 120px);
+    }
+
+    /* Panel izquierdo comandos */
+    .commands-panel {
+        width: 260px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        background: #161920;
+        border: 1px solid #1e2130;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .commands-search {
+        padding: 0.75rem;
+        border-bottom: 1px solid #1e2130;
+    }
+
+    .commands-search input {
+        width: 100%;
+        background: #0f1117;
+        border: 1px solid #1e2130;
+        border-radius: 6px;
+        padding: 0.4rem 0.75rem;
+        color: #e2e8f0;
+        font-size: 0.8rem;
+        outline: none;
+    }
+
+    .commands-search input:focus { border-color: #4d9fff; }
+    .commands-search input::placeholder { color: #475569; }
+
+    .commands-list { overflow-y: auto; flex-grow: 1; padding: 0.5rem; }
+
+    .cmd-category-label {
+        font-size: 0.65rem;
+        color: #3d4560;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+        padding: 0.5rem 0.5rem 0.25rem;
+    }
+
+    .cmd-btn {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        padding: 0.4rem 0.6rem;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.1s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1px;
+    }
+
+    .cmd-btn:hover {
+        background: #1e2233;
+        color: #e2e8f0;
+    }
+
+    .cmd-btn.requires-admin::before {
+        content: '🔒';
+        font-size: 0.65rem;
+        opacity: 0.7;
+    }
+
+    /* Terminal estilo Mac */
+    .terminal-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .terminal-window {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #1c1c1e;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #2a2a2e;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* Mac titlebar */
+    .terminal-titlebar {
+        background: #2a2a2e;
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid #3a3a3e;
+        flex-shrink: 0;
+    }
+
+    .mac-btn {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .mac-close   { background: #ff5f57; }
+    .mac-min     { background: #febc2e; }
+    .mac-max     { background: #28c840; }
+
+    .terminal-title {
+        flex: 1;
+        text-align: center;
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .btn-clear-terminal {
+        background: transparent;
+        border: none;
+        color: #475569;
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 0 0.25rem;
+        transition: color 0.15s;
+    }
+
+    .btn-clear-terminal:hover { color: #94a3b8; }
+
+    /* Output area */
+    .terminal-output {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.25rem;
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        background: #1c1c1e;
+        color: #d1d5db;
+    }
+
+    .terminal-output::-webkit-scrollbar { width: 6px; }
+    .terminal-output::-webkit-scrollbar-track { background: transparent; }
+    .terminal-output::-webkit-scrollbar-thumb { background: #3a3a3e; border-radius: 3px; }
+
+    .term-welcome { color: #22c55e; margin-bottom: 0.25rem; }
+    .term-info    { color: #475569; margin-bottom: 1rem; font-size: 0.75rem; }
+
+    .term-cmd-line {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .term-prompt { color: #22c55e; flex-shrink: 0; }
+    .term-cmd-text { color: #e2e8f0; }
+
+    .term-executing {
+        color: #f59e0b;
+        font-style: italic;
+        margin-bottom: 0.5rem;
+        font-size: 0.75rem;
+        animation: blink 1s infinite;
+    }
+
+    @@keyframes blink {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+    }
+
+    .term-output {
+        color: #94a3b8;
+        white-space: pre-wrap;
+        margin-bottom: 0.25rem;
+        padding-left: 0.5rem;
+        border-left: 2px solid #2a2a2e;
+        font-size: 0.78rem;
+    }
+
+    .term-status-done  { color: #22c55e; font-size: 0.72rem; margin-bottom: 1rem; }
+    .term-status-error { color: #ef4444; font-size: 0.72rem; margin-bottom: 1rem; }
+
+    .term-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 14px;
+        background: #22c55e;
+        animation: cursor-blink 1s infinite;
+        vertical-align: middle;
+        margin-left: 2px;
+    }
+
+    @@keyframes cursor-blink {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0; }
+    }
+</style>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+    <a asp-action="Detail" asp-route-id="@Model.Server.Id"
+       class="btn btn-sm btn-outline-secondary">← Detalle</a>
+    <div>
+        <span class="fw-semibold">@Model.Server.Name</span>
+        <span class="text-muted small ms-2">@Model.Server.AssetCode · @Model.Server.IpAddress</span>
+    </div>
+    <span class="badge @(Model.Server.Status == "Online" ? "bg-success" : "bg-danger") ms-auto">
+        @Model.Server.Status
+    </span>
+</div>
+
+<div class="console-wrapper">
+
+    <!-- Panel de comandos -->
+    <div class="commands-panel">
+        <div class="commands-search">
+            <input type="text" id="cmd-search" placeholder="Buscar comando..."/>
+        </div>
+        <div class="commands-list" id="commands-list">
+            @foreach (var group in categories)
+            {
+                <div class="cmd-category" data-category="@group.Key">
+                    <div class="cmd-category-label">@group.Key</div>
+                    @foreach (var cmd in group)
+                    {
+                        <button class="cmd-btn @(cmd.RequiresAdmin ? "requires-admin" : "")"
+                                data-command-id="@cmd.Id"
+                                data-command-name="@cmd.Name"
+                                data-category="@(cmd.Category ?? "Sistema")"
+                                title="@cmd.Description">
+                            @cmd.Name
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal-panel">
+        <div class="terminal-window">
+
+            <!-- Mac titlebar -->
+            <div class="terminal-titlebar">
+                <div class="mac-btn mac-close"></div>
+                <div class="mac-btn mac-min"></div>
+                <div class="mac-btn mac-max"></div>
+                <div class="terminal-title">
+                    @Model.Server.Name — @Model.Server.IpAddress
+                </div>
+                <button class="btn-clear-terminal" id="btn-clear">⌫ limpiar</button>
+            </div>
+
+            <!-- Output -->
+            <div class="terminal-output" id="terminal-output">
+                <div class="term-welcome">SinfraRMM Terminal — @Model.Server.AssetCode</div>
+                <div class="term-info">Conectado · @Model.Server.IpAddress · @Model.Server.OsInfo</div>
+                <div id="output-lines"></div>
+                <span class="term-cursor" id="terminal-cursor"></span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+    const serverId = "@Model.Server.Id";
+    const apiUrl   = "@ViewBag.ApiUrl";
+
+    // ── SignalR ──
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${apiUrl}/hubs/monitor`)
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("ReceiveCommandResult", data => {
+        appendOutput(data.commandName, data.output, data.status);
+        setCursor(true);
+    });
+
+    async function startSignalR() {
+        await connection.start();
+        await connection.invoke("JoinServerGroup", serverId);
+    }
+
+    startSignalR().catch(console.error);
+
+    // ── Búsqueda de comandos ──
+    document.getElementById("cmd-search").addEventListener("input", function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll(".cmd-category").forEach(group => {
+            let visible = 0;
+            group.querySelectorAll(".cmd-btn").forEach(btn => {
+                const match = btn.dataset.commandName.toLowerCase().includes(q);
+                btn.style.display = match ? "" : "none";
+                if (match) visible++;
+            });
+            group.style.display = visible > 0 ? "" : "none";
+        });
+    });
+
+    // ── Ejecutar comando ──
+    document.querySelectorAll(".cmd-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const commandId   = btn.dataset.commandId;
+            const commandName = btn.dataset.commandName;
+
+            appendPending(commandName);
+            setCursor(false);
+
+            await fetch("/Servers/ExecuteCommand", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({
+                    serverId:  serverId,
+                    commandId: parseInt(commandId)
+                })
+            });
+        });
+    });
+
+    // ── Limpiar ──
+    document.getElementById("btn-clear").addEventListener("click", () => {
+        document.getElementById("output-lines").innerHTML = "";
+        setCursor(true);
+    });
+
+    // ── Helpers terminal ──
+    function appendPending(name) {
+        const lines = document.getElementById("output-lines");
+        const block = document.createElement("div");
+        block.className = "term-block";
+        block.innerHTML = `
+            <div class="term-cmd-line">
+                <span class="term-prompt">~$</span>
+                <span class="term-cmd-text">${name}</span>
+            </div>
+            <div class="term-executing">▶ ejecutando...</div>
+        `;
+        lines.appendChild(block);
+        scrollBottom();
+    }
+
+    function appendOutput(name, output, status) {
+        const lines = document.getElementById("output-lines");
+        const last  = lines.lastElementChild;
+        if (last) {
+            const exec = last.querySelector(".term-executing");
+            if (exec) exec.remove();
+
+            const pre = document.createElement("div");
+            pre.className   = "term-output";
+            pre.textContent = output;
+
+            const st = document.createElement("div");
+            st.className   = status === "Done" ? "term-status-done" : "term-status-error";
+            st.textContent = status === "Done" ? "✓ completado" : "✗ error";
+
+            last.appendChild(pre);
+            last.appendChild(st);
+        }
+        scrollBottom();
+    }
+
+    function setCursor(visible) {
+        document.getElementById("terminal-cursor").style.display = visible ? "inline-block" : "none";
+    }
+
+    function scrollBottom() {
+        const t = document.getElementById("terminal-output");
+        t.scrollTop = t.scrollHeight;
+    }
+</script>
+}

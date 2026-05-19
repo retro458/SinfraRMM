@@ -51,4 +51,5 @@ public partial class Server
 
     [InverseProperty("Server")]
     public virtual ICollection<MetricsHistory> MetricsHistories { get; set; } = new List<MetricsHistory>();
+    public virtual ICollection<CommandQueue> CommandQueues { get; set; } = new List<CommandQueue>();
 }

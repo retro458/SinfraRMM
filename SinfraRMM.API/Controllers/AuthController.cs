@@ -50,20 +50,36 @@ namespace SinfraRMM.API.Controllers
         }
 
         // Lo llama  MVC después del callback de Google/Microsoft
-        [HttpPost("external")]
-        public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginDto dto)
-        {
-            try
-            {
-                var (result, token) = await _authService.ExternalLoginAsync(dto);
-                SetAuthCookie(token);
-                return Ok(RespuestaDto.Ok("Login externo exitoso.", result));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(RespuestaDto.Error(ex.Message));
-            }
-        }
+     [HttpPost("external")]
+public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginDto dto)
+{
+    try
+    {
+        var (result, token) = await _authService.ExternalLoginAsync(dto);
+        SetAuthCookie(token);
+        return Ok(RespuestaDto.Ok("Login externo exitoso.", result));
+    }
+    catch (UnauthorizedAccessException ex) when (ex.Message == "PENDING")
+    {
+        return Ok(new { pending = true, mensaje = "Tu cuenta está pendiente de aprobación." });
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Unauthorized(RespuestaDto.Error(ex.Message));
+    }
+    catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+    {
+        // Log del inner exception real
+        Console.WriteLine($"[DB ERROR] {ex.Message}");
+        Console.WriteLine($"[DB INNER] {ex.InnerException?.Message}");
+        return BadRequest(RespuestaDto.Error(ex.InnerException?.Message ?? ex.Message));
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[ERROR] {ex.Message}");
+        return BadRequest(RespuestaDto.Error(ex.Message));
+    }
+}
 
         [HttpPost("logout")]
         [Authorize]

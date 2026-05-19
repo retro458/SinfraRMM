@@ -29,7 +29,7 @@ public partial class AlertRule
     public string? Operator { get; set; }
 
     [Column("is_active")]
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     [Column("created_at")]
     public DateTime? CreatedAt { get; set; }

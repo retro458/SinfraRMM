@@ -1,0 +1,189 @@
+@model List<SinfraRMM.Web.Dtos.ServerDto>
+@{
+    ViewData["Title"] = "Servidores";
+}
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0"> Servidores</h5>
+            <small class="text-muted">Inventario de activos registrados</small>
+        </div>
+        @if (User.IsInRole("Admin"))
+        {
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddServer">
+                + Registrar servidor
+            </button>
+        }
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr style="border-color:#2a2d3a">
+                        <th class="px-3 py-3 text-muted small">CÓDIGO</th>
+                        <th class="py-3 text-muted small">NOMBRE</th>
+                        <th class="py-3 text-muted small">IP</th>
+                        <th class="py-3 text-muted small">OS</th>
+                        <th class="py-3 text-muted small">ESTADO</th>
+                        <th class="py-3 text-muted small">ÚLTIMO CONTACTO</th>
+                        <th class="py-3 text-muted small">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                Sin servidores registrados aún.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var server in Model)
+                    {
+                        <tr style="border-color:#2a2d3a" id="row-@server.Id">
+                            <td class="px-3 py-3">
+                                <span class="badge bg-secondary">@server.AssetCode</span>
+                            </td>
+                            <td class="py-3">@server.Name</td>
+                            <td class="py-3">
+                                <code class="text-info">@server.IpAddress</code>
+                            </td>
+                            <td class="py-3">
+                                <small class="text-muted">@(server.OsInfo ?? "—")</small>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge @(server.Status == "Online" ? "bg-success" : server.Status == "Maintenance" ? "bg-warning" : "bg-danger")"
+                                      id="status-@server.Id">
+                                    @server.Status
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <small class="text-muted" id="heartbeat-@server.Id">
+                                    @(server.LastHeartbeat?.ToString("dd/MM HH:mm:ss") ?? "Nunca")
+                                </small>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex gap-2">
+                                    <a asp-action="Detail" asp-route-id="@server.Id"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Ver
+                                    </a>
+                                    <a asp-action="Console" asp-route-id="@server.Id"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        Consola
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Registrar servidor (solo Admin) -->
+@if (User.IsInRole("Admin"))
+{
+    <div class="modal fade" id="modalAddServer" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#1a1d27; border:1px solid #2a2d3a;">
+                <div class="modal-header" style="border-color:#2a2d3a;">
+                    <h6 class="modal-title">Registrar servidor</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="form-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label small">Nombre</label>
+                        <input type="text" id="inp-name" class="form-control" placeholder="Fedora Main"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">IP Address</label>
+                        <input type="text" id="inp-ip" class="form-control" placeholder="100.x.x.x"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Categoría</label>
+                        <select id="inp-category" class="form-select">
+                            <option value="SVR">SVR — Servidor físico</option>
+                            <option value="VPS">VPS — Servidor virtual</option>
+                            <option value="DB">DB — Servidor de base de datos</option>
+                            <option value="WEB">WEB — Servidor web</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">OS Info <span class="text-muted">(opcional)</span></label>
+                        <input type="text" id="inp-os" class="form-control" placeholder="Fedora Linux 44"/>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:#2a2d3a;">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary btn-sm" id="btn-save-server">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+    // SignalR para actualizar status en tiempo real
+    const serverIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(s => s.Id.ToString())));
+    const apiUrl    = "@ViewBag.ApiUrl";
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${apiUrl}/hubs/monitor`)
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("ServerStatusChanged", data => {
+        const badge = document.getElementById(`status-${data.serverId}`);
+        if (!badge) return;
+        badge.textContent = data.status;
+        badge.className   = `badge ${data.status === "Online" ? "bg-success" : "bg-danger"}`;
+    });
+
+    async function startSignalR() {
+        try {
+            await connection.start();
+            for (const id of serverIds)
+                await connection.invoke("JoinServerGroup", id);
+        } catch {
+            setTimeout(startSignalR, 5000);
+        }
+    }
+
+    startSignalR();
+
+    // Registrar servidor
+    document.getElementById("btn-save-server")?.addEventListener("click", async () => {
+        const body = {
+            name:      document.getElementById("inp-name").value,
+            ipAddress: document.getElementById("inp-ip").value,
+            category:  document.getElementById("inp-category").value,
+            osInfo:    document.getElementById("inp-os").value || null
+        };
+
+        const res = await fetch("/Servers/Create", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            const err = await res.json();
+            const el  = document.getElementById("form-error");
+            el.textContent = err.mensaje ?? "Error al registrar.";
+            el.classList.remove("d-none");
+        }
+    });
+</script>
+}
