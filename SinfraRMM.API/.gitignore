@@ -11,6 +11,6 @@
 **/log
 **/wwwroot/logs
 **/wwwroot/log
-**/Dockerfile
+
 **/docker-compose.yml
 **/docker-compose.override.yml
