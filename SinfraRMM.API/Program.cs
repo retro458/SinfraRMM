@@ -32,8 +32,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SinfraPolicy", policy =>
     {
-        policy.WithOrigins("", "http://localhost:5000", "http://localhost:5049, https://sinfra.nodesv.com, https://sinfrAPI.nodesv.com")
-              .AllowAnyMethod()
+                policy.WithOrigins(
+    "http://localhost:5000",
+    "http://localhost:5049",
+    "https://sinfra.nodesv.com",
+    "https://sinfrapi.nodesv.com"  // <- minúscula, como lo pone Cloudflare
+)
               .AllowAnyHeader()
               .AllowCredentials(); 
     });
