@@ -18,6 +18,13 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     client.BaseAddress = new Uri(Env.GetString("API_URL"));
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // 4. Autenticación por cookies (sesión del MVC)
 // El MVC no valida JWT directamente — solo guarda claims en cookie propia
 builder.Services.AddAuthentication(options =>
@@ -41,6 +48,13 @@ builder.Services.AddAuthentication(options =>
     options.CallbackPath = "/signin-google";
     options.Scope.Add("email");
     options.Scope.Add("profile");
+    // Fuerza HTTPS en el callback
+    options.Events.OnRedirectToAuthorizationEndpoint = context =>
+    {
+        var redirectUri = context.RedirectUri.Replace("http://", "https://");
+        context.Response.Redirect(redirectUri);
+        return Task.CompletedTask;
+    };
 });
 builder.Services.AddAuthorization();
 
