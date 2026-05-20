@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ./SinfraRMM.API
+      dockerfile: Dockerfile
+    container_name: sinfra-api
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    env_file:
+      - ./SinfraRMM.API/.env
+    ports:
+      - "5281:8080"
+    networks:
+      - sinfra-net
+
+  web:
+    build:
+      context: ./SinfraRMM.Web
+      dockerfile: Dockerfile
+    container_name: sinfra-web
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    env_file:
+      - ./SinfraRMM.Web/.env
+    ports:
+      - "5049:8080"
+    depends_on:
+      - api
+    networks:
+      - sinfra-net
+
+networks:
+  sinfra-net:
+    driver: bridge
