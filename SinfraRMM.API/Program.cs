@@ -32,7 +32,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SinfraPolicy", policy =>
     {
-        policy.WithOrigins("", "http://localhost:5000", "http://localhost:5049")
+        policy.WithOrigins("", "http://localhost:5000", "http://localhost:5049, https://sinfra.nodesv.com, https://sinfrAPI.nodesv.com")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); 
