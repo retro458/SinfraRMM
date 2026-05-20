@@ -59,7 +59,11 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-
+app.Use((context, next) =>
+{
+    context.Request.Scheme = "https";
+    return next();
+});
 // 5. Pipeline
 if (!app.Environment.IsDevelopment())
 {
