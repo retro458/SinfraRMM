@@ -310,7 +310,17 @@
                 <a href="/Users/Index" class="badge bg-warning text-dark text-decoration-none">
                     ⚠️ <span id="pending-count">1</span> usuario(s) pendiente(s)
                 </a>
+                
             </div>
+      @if (User.IsInRole("Admin") || User.IsInRole("Auditor"))
+{
+    <a href="@Url.Action("DownloadGeneralReport", "Reports")"
+       target="_blank"
+       class="btn btn-sm"
+       style="background:#1e2233; color:#4d9fff; border:1px solid #2a2d3a; font-size:0.8rem">
+        📄 Reporte PDF
+    </a>
+}
         </div>
 
         <div class="p-4">
